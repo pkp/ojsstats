@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="jquery-1.9.1.min.js"></script>
+<script src="bootstrap.tooltip.min.js"></script>
+
+<script src="d3.v3.min.js"></script>
+<script src="queue.v1.min.js"></script>
+<script src="colorbrewer.js"></script>
+
+<link rel="stylesheet" type="text/css" href="bootstrap.tooltip.min.css" />
+
+<style>
+body {
+	font: 10px sans-serif;
+}
+
+h1 {
+    text-align: center;
+}
+
+#main {
+    width: 940px;
+}
+
+#theexplanations {
+    width: 900px;
+}
+
+.background {
+	fill: none;
+	pointer-events: all;
+}
+
+#countries {
+	fill: #aaa;
+	stroke: #fff;
+	stroke-width: 1.5px;
+}
+
+ #states path {
+   fill: #ccc;
+   stroke: #fff;
+ }
+
+.arc {
+    pointer-events: none;
+    fill: none;
+    stroke: #999;
+    stroke-opacity: 0.4;
+}
+
+#theyear {
+    font-size: 4em;
+    position: absolute;
+    top: 40px;
+    left: 800px;
+}
+
+#theregions {
+    font-size: 1.5em;
+    position: absolute;
+    top: 300px;
+}
+
+ </style>
+
+<body>
+    <div id="main">
+        <h1>Location of journals using Open Journal Systems</h1>
+        <div id="themap">
+        <div id="theyear">
+            <span></span><br />
+            <input style="position:relative; top:-2em;width:90px" type="range" min="1990" max="2014" value="1990">
+        </div>
+        <span id="theregions"></span>
+        </div>
+        <div id="theexplanations">
+            Notes: This map shows the journals using <a href="http://pkp.sfu.ca/ojs">Open Journal Systems</a> (OJS) available online sometime in the last 30 days. Each year ONLY shows journals with <em>content</em> published in that year. The numbers <em>do not</em> represent the rate of adoption of OJS (many journals only upload back issues without publishing ANY current content, skip a year, or go offline). 
+            <ul>
+                <li>URLs for installations were found by looking at the "referrer" addresses in the PKP website log (by default OJS links back to pkp.sfu.ca). As a result, some OJS journals are NOT reflected in these numbers.</li>
+                <li>Map shows journals, not installations.</li>
+                <li>Journals are counted for any given year if they have at least 10 articles published that year. Any journals not meeting this criteria are NOT included in these numbers.</li>
+                <li>Journal content was found using the PKP Harvester using the OAI PMH.</li>
+                <li>Country of origin of a journal is determined by (in order of preference): by the presence of country name in journal title, top level domain, or by GeoIP lookup of IP address. This method <em>is not</em> perfect and is known to be skewed towards the location of hosting servers. </li>
+            </ul>
+        </div>
+    </div>
+<script>
+
+var colors = {
+    'ECS' : d3.scale.threshold().domain([25, 75, 175, 375, 775]).range(colorbrewer.Greens[6]),
+    'LCN' : d3.scale.threshold().domain([25, 75, 175, 375, 775]).range(colorbrewer.Blues[6]),
+    'EAS' : d3.scale.threshold().domain([25, 75, 175, 375, 775]).range(colorbrewer.Oranges[6]),
+    'NAC' : d3.scale.threshold().domain([25, 75, 175, 375, 775]).range(colorbrewer.Reds[6]),
+    'SAS' : d3.scale.threshold().domain([25, 75, 175, 375, 775]).range(colorbrewer.Blues[6]),
+    'SSF' : d3.scale.threshold().domain([25, 75, 175, 375, 775]).range(colorbrewer.Reds[6]),
+    'MEA' : d3.scale.threshold().domain([25, 75, 175, 375, 775]).range(colorbrewer.Blues[6]),
+    'unknown' : d3.scale.threshold().domain([25, 75, 175, 375, 775]).range(colorbrewer.Greys[6])
+    };
+
+var margin = {top: 20, right: 20, bottom: 30, left: 60},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var yearFormat = d3.time.format("%Y");
+
+var projection = d3.geo.equirectangular()
+    .scale(150)
+    .translate([width / 2, height * .55])
+    .precision(.1);
+
+var	path = d3.geo.path()
+    .projection(projection);
+
+var zoom = d3.behavior.zoom()
+    .translate(projection.translate())
+    .scale(projection.scale())
+    .scaleExtent([150, width*8])
+    .on("zoom", zoommove);
+
+var svg = d3.select('#themap').append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .call(zoom);
+
+queue()
+    .defer(d3.json, "world-countries-with-wb.json")
+    .defer(d3.csv, "../data/journals_per_country.csv")
+    .await(ready);
+
+var counts = {};
+var country_region_map = {};
+var region_counts = {}
+var year = 1990;
+function ready(error, countries, data) {
+    data.forEach(function(d) {
+        var y = +d.year;
+        var c = d.country.toUpperCase();
+        var region_id = d.region_id;
+        var region_name = d.region_name.replace(" (all income levels)", "");
+        var n = +d['archive_id'];
+        if (typeof counts[y] == 'undefined') {
+            counts[y] = {};
+            region_counts[y] = {};
+        }
+        if (typeof region_counts[y][region_name] == 'undefined') {
+            region_counts[y][region_name] = 0;
+        }
+        counts[y][c] = n;
+        region_counts[y][region_name] += n;
+
+        country_region_map[c] = region_id;
+    });
+
+    svg.append("g")
+        .attr("class", "countries")
+      .selectAll("path")
+        .data(countries.features)
+      .enter().append("path")
+        .attr("country_code", function(d) { return d.id; } )
+        .attr("country", function(d) { return d.properties.name; })
+        .attr("country_iso2_code", function(d) { return d.properties.iso2; })
+        .attr("region_id", function(d) { return d.properties.region_id; })
+        .attr("region_name", function(d) { return d.properties.region_name; })
+        .attr("d", path);
+
+    d3.select("input[type=range]").on("change", function() { change(this.value); });
+    d3.select("input[type=range]").on("click", function() { clearInterval(intervalId); });
+
+    change(year);
+    var intervalId = setInterval(function(){
+                                    if (year < 2014) {
+                                        year = year + 1;
+                                        change(year);
+                                    } else {
+                                        setInterval(intervalId);
+                                    }
+                                },1000);
+}
+
+function change(y) {
+    svg.selectAll("path")
+        .attr("count", function(d) { return counts[y][d.id] ? counts[y][d.id] : 0; })
+        .style("fill", function(d) { return  counts[y][d.id] ? colors[country_region_map[d.id]](counts[y][d.id]) : "#eee"; });
+
+    // loop through all countries
+    svg.selectAll("path").each(
+        function(d,i){
+            // need to destroy tooltip to change the title
+            $(this).tooltip('destroy');
+             if (parseInt($(this).attr("count")) > 0) {
+                $(this).tooltip({title: $(this).attr("country") + ": " + $(this).attr("count") + " journals", container: "#themap"});
+             } else {
+                 $(this).tooltip({title: $(this).attr("country") + ": no journals", container: "#themap"});
+             }
+    });
+
+    d3.select("input[type=range]")[0][0].value=y;
+    d3.select("#theyear > span")[0][0].innerHTML=y;
+    d3.select("#theregions")[0][0].innerHTML = print_regions(y);
+}
+
+function print_regions(y) {
+    output = '';
+    total = 0;
+    d3.keys(region_counts[y]).sort().forEach(function(d) {
+        output += d + ': ' + region_counts[y][d] + "<br />";
+        total += region_counts[y][d]
+        }
+    );
+    output += '<strong>Total: ' + total + '</strong>';
+    return output;
+}
+
+function zoommove() {
+    projection.translate(d3.event.translate).scale(d3.event.scale);
+    svg.selectAll("path").attr("d", path);
+}
+
+</script>
+
+

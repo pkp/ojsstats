@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+	font: 10px sans-serif;
+}
+
+h1 {
+    text-align: center;
+}
+
+#main {
+    width: 960px;
+}
+
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.x.axis path {
+  display: none;
+}
+
+</style>
+<body>
+    <div id="main">
+    <h1>OJS Journals with at least 10 articles in a year</h1>
+    <form id="selectdata">
+      <label><input type="radio" name="whatdata" value="journals" checked> Journals</label>
+      <label><input type="radio" name="whatdata" value="articles"> Articles</label>
+      <label><input type="radio" name="whatdata" value="hosts"> Hosts</label>
+      <label><input type="radio" name="whatdata" value="in_doaj"> In DOAJ</label>
+      <label><input type="radio" name="whatdata" value="in_ulrich"> In Ulrich</label>
+    </form>
+    </div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+function get_value(datum, type) {
+    switch(type) {
+        case 'hosts':
+            return datum.hosts;
+        case 'articles':
+            return datum.articles;
+        case 'in_doaj':
+            return datum.in_doaj;
+        case 'in_ulrich':
+            return datum.in_ulrich;
+        case 'journals':
+        default:
+            return datum.journals;
+    }
+}
+
+var margin = {top: 20, right: 20, bottom: 30, left: 60},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+
+var yearFormat = d3.time.format("%Y");
+var numFormat = d3.format(",d");
+
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .1);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickFormat(yearFormat);
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .tickFormat(numFormat);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+svg.append("g")
+  .attr("class", "x axis")
+  .attr("transform", "translate(0," + height + ")");
+
+svg.append("g")
+    .attr("class", "y axis")
+  .append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 6)
+    .attr("dy", ".71em")
+    .attr("class", "axisLabel")
+    .style("text-anchor", "end");
+
+
+d3.csv("../data/ojs_counts.csv", function(d) {
+    return {
+        year: new Date(+d.year, 0, 1), // convert "year" column to Date
+        journals: +d.journals,  // convert all other columns to numbers
+        articles: +d.articles,
+        hosts: +d.hosts,
+        in_doaj: +d.in_doaj,
+        in_ulrich: +d.in_ulrich
+    };
+}, function(error, data) {
+    var type = 'journals'
+
+    x.domain(data.map(function(d) { return d.year; }));
+    y.domain([0, d3.max(data, function(d) { return get_value(d, type); })]);
+
+    svg.selectAll(".bar")
+      .data(data)
+    .enter().append("rect")
+        .attr("class", "bar")
+        .attr("x", function(d) { return x(d.year); })
+        .attr("width", x.rangeBand())
+        .attr("y", height)
+        .attr("height", 0);
+
+    svg.selectAll("text.label")
+        .data(data)
+      .enter().append("text")
+        .attr("class", "label")
+        .attr("x", function(d) { return x(d.year); })
+        .attr("dx", x.rangeBand()/2)
+        .attr("y", height)
+        .attr("text-anchor", "middle"); // text-align: right
+
+    d3.select("#selectdata").selectAll("input").on("change", change);
+
+    function change() {
+        var input = d3.select("#selectdata").selectAll("input:checked")[0][0];
+        type = input.value;
+
+        y.domain([0, d3.max(data, function(d) { return get_value(d, type); })]);
+
+        var transition = svg.transition().duration(1000);
+
+        transition.select(".x.axis")
+            .call(xAxis);
+
+        yAxis.tickValues([d3.max(y.domain())]); // only one tick at max
+
+        transition.select(".y.axis")
+            .call(yAxis);
+
+        svg.select(".y.axis").select(".axisLabel")
+            .text(input.parentNode.childNodes[1].data);
+
+        transition.selectAll(".bar")
+            .attr("y", function(d) { return y(get_value(d, type)); })
+            .attr("height", function(d) { return height - y(get_value(d, type)); });
+
+        transition.selectAll("text.label")
+            .attr("y", function(d) { return y(get_value(d, type)); })
+            .text(function(d) { return numFormat(get_value(d, type)); });
+
+    }
+    change();
+});
+
+</script>
