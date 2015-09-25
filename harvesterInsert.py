@@ -81,6 +81,9 @@ with litecon:
 		title = journal[2]
 		ip = journal[3]
 
+		if not title:
+			continue
+
 		litecur.execute("SELECT oai_url FROM endpoints WHERE repository_identifier=? AND ip=?", (repository_identifier, ip))
 		oai_url = litecur.fetchone()[0]
 
