@@ -132,7 +132,7 @@ with litecon:
 			try:
 				country = iso2_to_iso3[journal_geoip]
 			except:
-				print journal[0] + " has invalid locale"
+				continue
 
 		region_id = wb_country_info[country]['region_id']
 		region_name = wb_country_info[country]['region_name']
