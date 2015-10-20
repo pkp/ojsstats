@@ -11,7 +11,6 @@ from unidecode import unidecode
 import sqlite3 as lite
 
 from datetime import date, timedelta
-from config import harvester_sql_password
 
 
 # In[ ]:

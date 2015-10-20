@@ -16,6 +16,7 @@ with litecon:
 # set up SQL table
 	litecur = litecon.cursor()
 	litecur.execute("CREATE TABLE IF NOT EXISTS locales (archive_id TEXT, tld TEXT, country_in_title TEXT, geo_ip TEXT, country TEXT, region_id TEXT, region_name TEXT)")
+	litecur.execute("CREATE UNIQUE INDEX IF NOT EXISTS locale_index ON locales (archive_id)")
 
 
 # prep for finding country from title
