@@ -78,7 +78,7 @@ with litecon:
 	for journal in journals:
 		repository_identifier = journal[0]
 		setSpec = journal[1]
-		if journal[2] is not null:
+		if journal[2] is not None:
 			title = journal[2]
 		else:
 			title = "NoTitle"
