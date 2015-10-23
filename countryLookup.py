@@ -88,13 +88,16 @@ def find_country_in_title(journal):
 
 with litecon:
 	litecur = litecon.cursor()
-	litecur.execute("SELECT repository_identifier, setSpec, setName, archive_id, ip FROM journals")
+	litecur.execute("SELECT repository_identifier, setSpec, setName, archive_id, ip FROM journals WHERE archive_id IS NOT NULL")
 	# this needs to run after harvester insert so archive_id is present
 	journals = litecur.fetchall()
 
 	# this code block is duplicated from harvester insert, could probably make it run at the end of that script
 	for journal in journals:
 		repository_identifier = journal[0]
+		setSpec = journal[1]
+		setName = journal[2]
+		archive_id = journal[3]
 		ip = journal[4]
 
 		match = geolite2.lookup(ip)
@@ -106,7 +109,7 @@ with litecon:
 		else:
 			journal_geoip = None
 
-		if journal[2] is not None:
+		if setName is not None:
 			country_in_title = find_country_in_title(journal)
 		else:
 			country_in_title = None
@@ -139,7 +142,7 @@ with litecon:
 		region_name = wb_country_info[country]['region_name']
 
 		try:
-			litecur.execute("INSERT INTO locales (archive_id, tld, country_in_title, geo_ip, country, region_id, region_name) VALUES(?,?,?,?,?,?,?)", (journal[3], tld, country_in_title, journal_geoip, country, region_id, region_name))
+			litecur.execute("INSERT INTO locales (archive_id, tld, country_in_title, geo_ip, country, region_id, region_name) VALUES(?,?,?,?,?,?,?)", (archive_id, tld, country_in_title, journal_geoip, country, region_id, region_name))
 		except:
 			# if this fails, we probably already have it; no need to update
 			pass
