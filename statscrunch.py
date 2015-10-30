@@ -144,7 +144,6 @@ def filter_by_num_articles(n):
     return filtered, journals_data
 
 filtered, journals_data = filter_by_num_articles(10)
-print len(filtered)
 
 
 # In[ ]:
