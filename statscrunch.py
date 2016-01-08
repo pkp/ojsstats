@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
+# <nbformat>3.0</nbformat>
 
-# In[ ]:
+# <codecell>
 
 import sys, re, os, gc
 import difflib, random
@@ -12,68 +14,58 @@ import sqlite3 as lite
 
 from datetime import date, timedelta
 
-
-# In[ ]:
+# <codecell>
 
 record_dates = pd.read_csv('data/dates.txt', sep="\t")
 record_dates.columns = ['record_id', 'archive_id','dcdate', 'source']
 record_dates.set_index('archive_id', inplace=True)
 
-
-# In[ ]:
+# <codecell>
 
 archive_settings  = pd.read_csv('data/archive_settings.csv', encoding='utf8', escapechar='\\')
 archive_settings.columns = ['archive_id','setting_name', 'setting_value', 'type']
 archive_settings.set_index('archive_id', inplace=True)
 lastIndexedDate = archive_settings[archive_settings.setting_name == 'lastIndexedDate'][['setting_value']]
-lastIndexedDate.columns=['lastIndexedDate']
+lastIndexedDate.columns=['lastIndexedDate']                                                                        
 
-
-# In[ ]:
+# <codecell>
 
 record_dates = record_dates.merge(lastIndexedDate, how="left", left_index=True, right_index=True)
 
-
-# In[ ]:
+# <codecell>
 
 # remove stuff we haven't harvested in the last 30 days
 record_dates = record_dates[record_dates.lastIndexedDate >= (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")]
 
-
-# In[ ]:
+# <codecell>
 
 litecon = lite.connect('data/ojs_oai.db')
 countries = pd.read_sql("select archive_id, country, region_id, region_name from locales", litecon, index_col='archive_id')
 countries.index = countries.index.astype(int)
 
-
-# In[ ]:
+# <codecell>
 
 record_dates = record_dates.merge(countries, how="left", left_index=True, right_index=True)
 
-
-# In[ ]:
+# <codecell>
 
 installations = pd.read_sql("select archive_id, repository_identifier, ip from journals", litecon, index_col='archive_id')
 installations['install_id'] = installations.apply(lambda row: "%s_%s" % (row['repository_identifier'], row['ip']), axis=1)
 del installations['repository_identifier']
 del installations['ip']
 
-
-# In[ ]:
+# <codecell>
 
 record_dates = record_dates.merge(installations, how="left", left_index=True, right_index=True)
 
-
-# In[ ]:
+# <codecell>
 
 record_dates = record_dates.reset_index().set_index('record_id')
 
-
-# In[ ]:
+# <codecell>
 
 # archive_settings cleanup to make Alex happy
-try:
+try: 
     del archive_settings
     del lastIndexedDate
     del countries
@@ -82,8 +74,7 @@ try:
 except:
     pass
 
-
-# In[ ]:
+# <codecell>
 
 year_regex = re.compile('.*(?:[^\d\-]|^)((?:1\d|20)\d{2})(?:\)|\;|$).*')
 
@@ -96,7 +87,7 @@ def find_best_year(y, s):
     except:
         y = None
 
-    try:
+    try: 
         r=year_regex.match(s)
         year_in_source = int(r.group(1))
         if year_in_source <= date.today().year and year_in_source > 1000:
@@ -106,7 +97,7 @@ def find_best_year(y, s):
 
     return y
 # We're doing chained assignment somewhere here, but its not a problem, so turn off warning
-pd.options.mode.chained_assignment = None
+pd.options.mode.chained_assignment = None 
 
 #
 # a simple attempt at fixing wrong publication years by pulling a year from the source
@@ -124,8 +115,7 @@ record_dates['year'] = record_dates.year.astype(int)
 # update dates that are likely to be in the islamic calendar
 record_dates['year'] = record_dates.year.map(lambda x: x if ((x <= date.today().year) and (x >= 1900 - 622)) else x + 622)
 
-
-# In[ ]:
+# <codecell>
 
 # grab only those journals that have at least x articles in that year
 last_year = date.today().year - 1
@@ -145,17 +135,16 @@ def filter_by_num_articles(n):
 
 filtered, journals_data = filter_by_num_articles(10)
 
-
-# In[ ]:
+# <codecell>
 
 countdata = {}
 articles_per_journal = {}
 # record_dates = record_dates[record_dates.year >= 1990]
-last_year = date.today().year - 1
+last_year = date.today().year
 for year in map(int, sorted(record_dates.year.unique())):
     if year < 1990 or year > last_year:
         continue
-
+        
     count_journals = len(filtered[filtered["year"]==year].archive_id.unique())
     count_articles = len(filtered[filtered["year"]==year])
     count_hosts = len(filtered[filtered["year"]==year].install_id.unique())
@@ -186,3 +175,4 @@ f.close()
 
 # write the number of journals per country
 filtered.groupby(['year', 'country', 'region_id', 'region_name']).archive_id.unique().apply(len).to_csv('data/journals_per_country.csv', header=True)
+
