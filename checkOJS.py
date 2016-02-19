@@ -141,9 +141,10 @@ def verify_not_missing_journal(journal_endpoint, setSpec):
 	response = urllib2.urlopen(request, timeout=180)
 	oai_xml = response.read()
 	# parsing XML with regex yeaaaaaaaaaaah [air guitar]
-	if re.find("noRecordsMatch", oai_xml):
-		return oai_xml
+	if not re.search("noRecordsMatch", oai_xml):
+		return True
 
+	return False
 
 def find_journal_endpoint(oai_url, setSpec):
 	''' Figure out the OAI endpoint for the journal given the OAI endpoint for install + setSpec '''
