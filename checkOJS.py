@@ -141,7 +141,7 @@ def verify_not_missing_journal(journal_endpoint, setSpec):
 	response = urllib2.urlopen(request, timeout=180)
 	oai_xml = response.read()
 	# parsing XML with regex yeaaaaaaaaaaah [air guitar]
-	if not re.search("noRecordsMatch", oai_xml):
+	if re.search("noRecordsMatch", oai_xml):
 		return True
 
 	return False
