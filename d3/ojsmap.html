@@ -105,6 +105,15 @@ var margin = {top: 20, right: 20, bottom: 30, left: 60},
 
 var yearFormat = d3.time.format("%Y");
 
+var d = new Date();
+var lastYear = d.getFullYear();
+var currentMonth = d.getMonth();
+// use last year until November (to let numbers build up)
+if (currentMonth < 10) {
+    lastYear = lastYear - 1;
+}
+d3.select("input[type=range]")[0][0].setAttribute("max", lastYear)
+
 var projection = d3.geo.equirectangular()
     .scale(150)
     .translate([width / 2, height * .55])
@@ -170,7 +179,7 @@ function ready(error, countries, data) {
 
     change(year);
     var intervalId = setInterval(function(){
-                                    if (year < 2014) {
+                                    if (year < lastYear) {
                                         year = year + 1;
                                         change(year);
                                     } else {
