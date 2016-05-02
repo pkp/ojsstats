@@ -42,6 +42,7 @@ h1 {
           <label><input type="radio" name="whatdata" value="journals" checked> Journals</label>
           <label><input type="radio" name="whatdata" value="articles"> Articles</label>
           <label><input type="radio" name="whatdata" value="hosts"> Installations</label>
+          <label><input type="radio" name="whatdata" value="avgnumarts"> Articles per Year</label>
         </form>
         <div id="chart"></div>
         <div id="theexplanations">
@@ -62,10 +63,8 @@ function get_value(datum, type) {
             return datum.hosts;
         case 'articles':
             return datum.articles;
-        case 'in_doaj':
-            return datum.in_doaj;
-        case 'in_ulrich':
-            return datum.in_ulrich;
+        case 'avgnumarts':
+            return datum.avgnumarts;
         case 'journals':
         default:
             return datum.journals;
@@ -122,8 +121,7 @@ d3.csv("../data/ojs_counts.csv", function(d) {
         journals: +d.journals,  // convert all other columns to numbers
         articles: +d.articles,
         hosts: +d.hosts,
-        in_doaj: +d.in_doaj,
-        in_ulrich: +d.in_ulrich
+        avgnumarts: +d.avgnumarts
     };
 }, function(error, data) {
     var type = 'journals'

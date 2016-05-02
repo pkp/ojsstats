@@ -26,7 +26,9 @@ archive_settings  = pd.read_csv('data/archive_settings.csv', encoding='utf8', es
 archive_settings.columns = ['archive_id','setting_name', 'setting_value', 'type']
 archive_settings.set_index('archive_id', inplace=True)
 lastIndexedDate = archive_settings[archive_settings.setting_name == 'lastIndexedDate'][['setting_value']]
-lastIndexedDate.columns=['lastIndexedDate']                                                                        
+lastIndexedDate.columns=['lastIndexedDate']
+recordCount = archive_settings[archive_settings.setting_name == 'recordCount'][['setting_value']]
+recordCount.columns=['recordCount']
 
 # <codecell>
 
@@ -34,8 +36,12 @@ record_dates = record_dates.merge(lastIndexedDate, how="left", left_index=True, 
 
 # <codecell>
 
+record_dates = record_dates.merge(recordCount, how="left", left_index=True, right_index=True)
+
+# <codecell>
+
 # remove stuff we haven't harvested in the last 30 days
-record_dates = record_dates[record_dates.lastIndexedDate >= (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")]
+record_dates = record_dates[record_dates.lastIndexedDate >= (date.today() - timedelta(days=230)).strftime("%Y-%m-%d")]
 
 # <codecell>
 
@@ -49,7 +55,7 @@ record_dates = record_dates.merge(countries, how="left", left_index=True, right_
 
 # <codecell>
 
-installations = pd.read_sql("select archive_id, repository_identifier, ip from journals", litecon, index_col='archive_id')
+installations = pd.read_sql("select archive_id, repository_identifier, ip, setName as journal_title, contact from journals", litecon, index_col='archive_id')
 installations['install_id'] = installations.apply(lambda row: "%s_%s" % (row['repository_identifier'], row['ip']), axis=1)
 del installations['repository_identifier']
 del installations['ip']
@@ -67,12 +73,30 @@ record_dates = record_dates.reset_index().set_index('record_id')
 # archive_settings cleanup to make Alex happy
 try: 
     del archive_settings
-    del lastIndexedDate
-    del countries
-    del installations
-    cleanedup = gc.collect()
 except:
     pass
+
+try:
+    del lastIndexedDate
+except:
+    pass
+
+try:
+    del recordCount
+except:
+    pass
+
+try:
+    del countries
+except:
+    pass    
+
+try:
+    del installations
+except:
+    pass    
+
+cleanedup = gc.collect()
 
 # <codecell>
 
@@ -133,7 +157,14 @@ def filter_by_num_articles(n):
 
     return filtered, journals_data
 
-filtered, journals_data = filter_by_num_articles(10)
+def filter_by_num_articles_last_two_years(n): 
+    archive_ids = record_dates[record_dates.year.between(last_year-2, last_year-1)].groupby('archive_id').filter(lambda x: len(x) >= n).archive_id.unique()
+    filtered = record_dates[record_dates.archive_id.isin(archive_ids)]
+    return filtered
+
+article_threshold = 10
+filtered, journals_data = filter_by_num_articles(article_threshold)
+# filtered = filter_by_num_articles_last_two_years(article_threshold)
 
 # <codecell>
 
@@ -174,5 +205,20 @@ for year, data in articles_per_journal.iteritems():
 f.close()
 
 # write the number of journals per country
-filtered.groupby(['year', 'country', 'region_id', 'region_name']).archive_id.unique().apply(len).to_csv('data/journals_per_country.csv', header=True)
+filtered_country = filtered.groupby(['year', 'country', 'region_id', 'region_name']).archive_id.unique().apply(len)
+filtered_country.to_csv('data/journals_per_country.csv', header=True)
 
+# <codecell>
+
+all_journals = record_dates[['archive_id', 'journal_title', 'contact', 'lastIndexedDate', 'recordCount', 'country', 'region_name']].set_index('archive_id', drop=True).drop_duplicates()
+
+# <codecell>
+
+for y in countdata: 
+    all_journals[y] = all_journals.index.isin(filtered[filtered["year"] == y].archive_id)
+
+all_journals['any_year'] = all_journals.index.isin(filtered[filtered["year"].between(min(countdata.keys()), max(countdata.keys()))].archive_id)
+
+# <codecell>
+
+all_journals.to_csv('data/all_journals.csv', header=True, encoding='utf8')
