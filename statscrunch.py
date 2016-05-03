@@ -226,7 +226,7 @@ filtered_country.to_csv('data/journals_per_country.csv', header=True)
 
 # <codecell>
 
-all_journals = record_dates[['archive_id', 'journal_title', 'contact', 'lastIndexedDate', 'recordCount', 'country', 'region_name']].set_index('archive_id', drop=True).drop_duplicates()
+all_journals = record_dates[['archive_id', 'journal_title', 'url', 'contact', 'lastIndexedDate', 'recordCount', 'country', 'region_name']].set_index('archive_id', drop=True).drop_duplicates()
 
 # <codecell>
 
