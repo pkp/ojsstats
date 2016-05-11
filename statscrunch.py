@@ -187,7 +187,11 @@ filtered, journals_data = filter_by_num_articles(article_threshold)
 countdata = {}
 articles_per_journal = {}
 # record_dates = record_dates[record_dates.year >= 1990]
-last_year = date.today().year
+if date.today().month > 9: 
+    last_year = date.today().year
+else:
+    last_year = date.today().year - 1
+    
 for year in map(int, sorted(record_dates.year.unique())):
     if year < 1990 or year > last_year:
         continue
