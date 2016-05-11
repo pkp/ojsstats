@@ -42,7 +42,7 @@ h1 {
           <label><input type="radio" name="whatdata" value="journals" checked> Journals</label>
           <label><input type="radio" name="whatdata" value="articles"> Articles</label>
           <label><input type="radio" name="whatdata" value="hosts"> Installations</label>
-          <label><input type="radio" name="whatdata" value="avgnumarts"> Articles per Year</label>
+          <label><input type="radio" name="whatdata" value="avgnumarts"> Avg. Articles per Journal per Year</label>
         </form>
         <div id="chart"></div>
         <div id="theexplanations">
@@ -77,7 +77,7 @@ var margin = {top: 20, right: 20, bottom: 30, left: 60},
 
 
 var yearFormat = d3.time.format("%Y");
-var numFormat = d3.format(",d");
+var numFormat = d3.format(",f");
 
 var x = d3.scale.ordinal()
     .rangeRoundBands([0, width], .1);
