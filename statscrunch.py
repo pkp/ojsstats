@@ -199,9 +199,10 @@ for year in map(int, sorted(record_dates.year.unique())):
     count_journals = len(filtered[filtered["year"]==year].archive_id.unique())
     count_articles = len(filtered[filtered["year"]==year])
     count_hosts = len(filtered[filtered["year"]==year].install_id.unique())
+    avg_articles_per_journal = filtered[filtered['year']==year].groupby(['year', 'archive_id']).apply(len).mean()
 
     # num_journals, num_articles, num_hosts
-    countdata[year] = [count_journals, count_articles, count_hosts]
+    countdata[year] = [count_journals, count_articles, count_hosts, avg_articles_per_journal]
 
     # get number of articles per journal per year
     # count, mean, std, min, 25%, 50%, 75%, max
