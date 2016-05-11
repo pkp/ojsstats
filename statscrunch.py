@@ -57,7 +57,7 @@ record_dates = record_dates.merge(harvesterUrl, how="left", left_index=True, rig
 # <codecell>
 
 # remove stuff we haven't harvested in the last 30 days
-record_dates = record_dates[record_dates.lastIndexedDate >= (date.today() - timedelta(days=230)).strftime("%Y-%m-%d")]
+record_dates = record_dates[record_dates.lastIndexedDate >= (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")]
 
 # <codecell>
 
