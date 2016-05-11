@@ -212,7 +212,7 @@ for year in map(int, sorted(record_dates.year.unique())):
 # write the journal/article/hosts count
 f = open('data/ojs_counts.csv', 'wb')
 csvWriter = csv.writer(f)
-csvWriter.writerow(['year', 'journals', 'articles', 'hosts'])
+csvWriter.writerow(['year', 'journals', 'articles', 'hosts', 'avgnumarts'])
 for year, data in countdata.iteritems():
     csvWriter.writerow([year] + data)
 f.close()
