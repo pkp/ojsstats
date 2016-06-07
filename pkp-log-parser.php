@@ -1,5 +1,5 @@
 <?php
-error_reporting(E_ERROR | E_PARSE);
+//error_reporting(E_ERROR | E_PARSE);
 $filename = 'data/ojs_in_logs.csv';
 $oxsUrls = array();
 
