@@ -7,6 +7,8 @@ import random
 from geoip import geolite2
 # pip install python-geoip-geolite2
 
+from tld import get_tld
+# pip install tld
 
 litecon = lite.connect('data/ojs_oai.db')
 
@@ -27,7 +29,7 @@ iso2_to_iso3 = {}
 country_stop_words = ['islands', 'saint', 'and', 'republic', 'virgin', 'united', 'south', 'of', 'new', 'the']
 
 
-request = urllib2.Request("http://api.worldbank.org/countries?per_page=300&format=json" ,headers={'User-Agent' : "PKP using urllib2"})
+request = urllib2.Request("http://api.worldbank.org/countries?per_page=400&format=json" ,headers={'User-Agent' : "PKP using urllib2"})
 response = urllib2.urlopen(request, timeout=30)
 wb_country_data = json.load(response)[1]
 
@@ -70,7 +72,6 @@ for country in wb_country_data:
 	if len(nat) > 4:
 		nat_to_iso3[nat] = iso3
 
-
 def find_country_in_title(journal):
 	if journal[3] in country_from_title:
 		return country_from_title[journal[3]][1]
@@ -85,6 +86,14 @@ def find_country_in_title(journal):
 
 	return None
 
+
+tld_to_country = {}
+with open('tldtoiso2.csv') as f: 
+	f.readline() # throw away header
+	for line in f:
+		line = line.strip().lower().split(',')
+		if line[2] != 'none':
+			tld_to_country[line[0]] = line[2]
 
 with litecon:
 	litecur = litecon.cursor()
@@ -105,7 +114,7 @@ with litecon:
 			try:
 				journal_geoip = match.country.lower()
 			except:
-				pass
+				journal_geoip = None
 		else:
 			journal_geoip = None
 
@@ -116,33 +125,53 @@ with litecon:
 
 		litecur.execute("SELECT oai_url FROM endpoints WHERE repository_identifier=? AND ip=?", (repository_identifier, ip))
 		oai_url = litecur.fetchone()[0]
-		try:
-			tld = re.search('\.[a-z]{2,3}(?![a-z\.])', oai_url).group(0)
-			tld = tld[1:]
-		except:
+		
+		# extract the TLD
+		domain = get_tld(oai_url, as_object=True, fail_silently=True)
+		if domain: 
+			tld = domain.suffix[domain.suffix.find('.')+1:]
+		else:
 			tld = None
-
+		
+		country = False
 		if country_in_title is not None:
 			country = country_in_title
-		elif tld is not None and tld != "php" and tld != "com" and tld != "net" and tld != "org":
+		elif tld is not None and tld != "php" and tld != "com" and tld != "net" and tld != "org" and tld != "info":
 			if tld == "edu":
 				country = "usa"
 			try:
-			# there are lots of tlds that aren't countries now, too many to blacklist
-				country = iso2_to_iso3[tld]
-			except:
+				country = iso2_to_iso3[tld_to_country[tld]]
+			except:			  
 				pass
-		else:
+		
+		# special handling of the JOLs
+		if tld == 'info':
+			if domain.domain == 'vjol':
+				country = 'vnm'
+			elif domain.domain == 'banglajol':
+				country = 'bgd'
+			elif domain.domain == 'ajol':
+				country = 'zaf'
+			elif domain.domain == 'nepjol':
+				country = 'npl'
+			elif domain.domain == 'philjol':
+				country = 'phl'
+			elif domain.domain == 'mongoliajol':
+				country = 'mng'
+			elif domain.domain == 'lamjol':
+				if not country_in_title: 
+					country = 'pri' # these are not really PRI, but want them to go to LatAm
+
+		if not country:
 			try:
 				country = iso2_to_iso3[journal_geoip]
 			except:
 				continue
 
 		region_id = wb_country_info[country]['region_id']
-		region_name = wb_country_info[country]['region_name']
+		region_name = wb_country_info[country]['region_name'].strip()
 
 		try:
 			litecur.execute("INSERT INTO locales (archive_id, tld, country_in_title, geo_ip, country, region_id, region_name) VALUES(?,?,?,?,?,?,?)", (archive_id, tld, country_in_title, journal_geoip, country, region_id, region_name))
 		except:
-			# if this fails, we probably already have it; no need to update
-			pass
+			litecur.execute("UPDATE locales SET tld=?, country_in_title=?, geo_ip=?, country=?, region_id=?, region_name=? WHERE archive_id = ?", (tld, country_in_title, journal_geoip, country, region_id, region_name, archive_id))
