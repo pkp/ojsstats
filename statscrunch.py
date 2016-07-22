@@ -330,5 +330,4 @@ df = df[(df.year >= 1990) & (df.year<=last_year)].groupby('year')[0].mean()
 print
 print df
 
-df.plot(kind="bar", title="Average Number of articles per journal")
-
+#df.plot(kind="bar", title="Average Number of articles per journal")
