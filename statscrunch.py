@@ -282,7 +282,7 @@ print "Total: %s" % filtered_country.archive_id.sum()
 filtered_income = filtered.groupby('incomeLevel').archive_id.unique().apply(len).reset_index()
 filtered_income.set_index('incomeLevel', inplace=True)
 filtered_income.columns = ['journals']
-filtered_income.reindex(['LIC', 'LMC', 'UMC', 'NOC', 'OEC']).plot(kind="bar")
+# filtered_income.reindex(['LIC', 'LMC', 'UMC', 'NOC', 'OEC']).plot(kind="bar")
 print filtered_income.sort('journals', ascending=False)
 
 # <codecell>
