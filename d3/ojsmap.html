@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <meta charset="utf-8">
 <script src="jquery-1.9.1.min.js"></script>
@@ -109,9 +108,12 @@ var d = new Date();
 var lastYear = d.getFullYear();
 var currentMonth = d.getMonth();
 // use last year until November (to let numbers build up)
-if (currentMonth < 10) {
+if (currentMonth > 4) {
     lastYear = lastYear - 1;
+} else {
+    lastYear = lastYear - 2;
 }
+
 d3.select("input[type=range]")[0][0].setAttribute("max", lastYear)
 
 var projection = d3.geo.equirectangular()
@@ -218,7 +220,7 @@ function print_regions(y) {
         total += region_counts[y][d]
         }
     );
-    output += '<strong>Total: ' + total + '</strong>';
+    output += '<strong>Total: ' + d3.format(',')(total) + '</strong>';
     return output;
 }
 

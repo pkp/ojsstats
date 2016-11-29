@@ -187,10 +187,10 @@ filtered, journals_data = filter_by_num_articles(article_threshold)
 countdata = {}
 articles_per_journal = {}
 # record_dates = record_dates[record_dates.year >= 1990]
-if date.today().month > 9: 
-    last_year = date.today().year
-else:
+if date.today().month > 4: 
     last_year = date.today().year - 1
+else:
+    last_year = date.today().year - 2
     
 for year in map(int, sorted(record_dates.year.unique())):
     if year < 1990 or year > last_year:
@@ -208,6 +208,7 @@ for year in map(int, sorted(record_dates.year.unique())):
     # count, mean, std, min, 25%, 50%, 75%, max
     articles_per_journal[year] = record_dates[record_dates['year']==year].groupby('archive_id').size().describe().tolist()
 
+print "Total number of journals in %s: %s" % (year, count_journals)
 
 # write the journal/article/hosts count
 f = open('data/ojs_counts.csv', 'wb')
@@ -256,17 +257,34 @@ print "Number of journals with > %s articles in previous two years: %s" % (artic
 
 print "Top by countries for %s: " % last_year
 filtered_country = filtered[filtered.year==last_year].groupby(['country', 'region_id', 'region_name']).archive_id.unique().apply(len).reset_index()
-filtered_country.sort('archive_id', ascending=False).head(5)
+filtered_country.sort('archive_id', ascending=False).head(10)
 
 # <codecell>
 
-import urllib2
-request = urllib2.Request("http://api.worldbank.org/countries?per_page=400&format=json" ,headers={'User-Agent' : "PKP using urllib2"})
-response = urllib2.urlopen(request, timeout=30)
+try: 
+    import urllib2
+    request = urllib2.Request("http://api.worldbank.org/countries?per_page=500&format=json" ,headers={'User-Agent' : "PKP using urllib2"})
+    response = urllib2.urlopen(request, timeout=30)
+    with open('data/worldbank.json', 'w') as f:
+        f.write(response.read())
+except:
+    pass
+    
+with open('data/worldbank.json') as f:
+    response = f.read()
+
 wb_country_data = json.load(response)[1]
 wb_country_income_map = {w['id'].lower(): w['incomeLevel']['id'] for w in wb_country_data}
 filtered['incomeLevel'] = filtered.country.apply(lambda x: wb_country_income_map[x] if x in wb_country_income_map else None)
 income_level_names = {w['incomeLevel']['id']: w['incomeLevel']['value'] for w in wb_country_data}
+
+# <codecell>
+
+response
+
+# <codecell>
+
+{w['region']['id'].lower(): w['region']['value'] for w in wb_country_data}
 
 # <codecell>
 
@@ -282,7 +300,7 @@ print "Total: %s" % filtered_country.archive_id.sum()
 filtered_income = filtered.groupby('incomeLevel').archive_id.unique().apply(len).reset_index()
 filtered_income.set_index('incomeLevel', inplace=True)
 filtered_income.columns = ['journals']
-# filtered_income.reindex(['LIC', 'LMC', 'UMC', 'NOC', 'OEC']).plot(kind="bar")
+# filtered_income.reindex([u'LIC', u'LMC', u'UMC', u'HIC', u'INX']).plot(kind="bar")
 print filtered_income.sort('journals', ascending=False)
 
 # <codecell>
@@ -293,7 +311,8 @@ def by_income(l):
 print "Low income: %s (%.2f%%)" % by_income(['LIC'])
 print "Lower-middle income: %s (%.2f%%)" % by_income(['LMC'])
 print "Upper middle income %s (%.2f%%)" % by_income(['UMC'])
-print "High income %s (%.2f%%)" % by_income(['OEC', 'NOC'])
+print "High income %s (%.2f%%)" % by_income(['HIC'])
+print "Not Classified %s (%.2f%%)" % by_income(['INX'])
 
 # <codecell>
 
@@ -305,12 +324,13 @@ filtered_income = filtered[filtered.year == 2015]
 print "Low income: %s (%.1f%%)" % by_income(['LIC'])
 print "Lower-middle income: %s (%.1f%%)" % by_income(['LMC'])
 print "Upper middle income %s (%.1f%%)" % by_income(['UMC'])
-print "High income %s (%.1f%%)" % by_income(['OEC', 'NOC'])
+print "High income %s (%.1f%%)" % by_income(['HIC'])
+print "Not Classified %s (%.2f%%)" % by_income(['INX'])
 
 # <codecell>
 
 df = filtered_income.copy()
-df['incomeLevel'] = df.incomeLevel.map(lambda x: x if x != 'NOC' and x != 'OEC' else 'HIC')
+# df['incomeLevel'] = df.incomeLevel.map(lambda x: x if x != 'NOC' and x != 'OEC' else 'HIC')
 df = df.groupby(['incomeLevel', 'archive_id']).apply(len) # this is 2015, see above
 df = df.reset_index().groupby('incomeLevel').mean()
 df[0].head()
@@ -327,7 +347,33 @@ print "On average %.2f articles per year since %s" % (df[df.year >= y][0].mean()
 print "On average %.2f articles per year before %s" % (df[df.year < y][0].mean(), y)
 
 df = df[(df.year >= 1990) & (df.year<=last_year)].groupby('year')[0].mean()
-print
-print df
+# print
+# print df
+# df.plot(kind="bar", title="Average Number of articles per journal")
 
-#df.plot(kind="bar", title="Average Number of articles per journal")
+# <codecell>
+
+# archive_settings[archive_settings.setting_name .head()
+
+# <codecell>
+
+# df['domain'] = df.url.map(lambda x: urlparse(x).netloc if str(x) > 4 and str(x)[0:4] == 'http' else None)
+
+# <codecell>
+
+# df_acuks = df[df.domain.str.endswith('ac.uk').fillna(False)]
+
+# <codecell>
+
+# harvesterUrl = archive_settings[archive_settings.setting_name == 'harvesterUrl'][['setting_value']]
+# harvesterUrl.columns=['url']
+# harvesterUrl['url'] = harvesterUrl.url.apply(find_journal_url)
+
+# <codecell>
+
+# all_journals.ix[3138]
+
+# <codecell>
+
+# df_acuks[['journal_title', 'url', 'recordCount']].sort('recordCount', ascending=False).to_excel('data/acuks_for_2015.xls')
+
