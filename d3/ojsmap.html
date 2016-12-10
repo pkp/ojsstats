@@ -201,7 +201,7 @@ function change(y) {
             // need to destroy tooltip to change the title
             $(this).tooltip('destroy');
              if (parseInt($(this).attr("count")) > 0) {
-                $(this).tooltip({title: $(this).attr("country") + ": " + $(this).attr("count") + " journals", container: "#themap"});
+                $(this).tooltip({title: $(this).attr("country") + ": " + d3.format(',')($(this).attr("count")) + " journals", container: "#themap"});
              } else {
                  $(this).tooltip({title: $(this).attr("country") + ": no journals", container: "#themap"});
              }
