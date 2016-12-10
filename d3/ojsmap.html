@@ -216,7 +216,7 @@ function print_regions(y) {
     output = '';
     total = 0;
     d3.keys(region_counts[y]).sort().forEach(function(d) {
-        output += d + ': ' + region_counts[y][d] + "<br />";
+        output += d + ': ' + d3.format(',')(region_counts[y][d]) + "<br />";
         total += region_counts[y][d]
         }
     );
