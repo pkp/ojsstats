@@ -273,7 +273,7 @@ except:
 with open('data/worldbank.json') as f:
     response = f.read()
 
-wb_country_data = json.load(response)[1]
+wb_country_data = json.loads(response)[1]
 wb_country_income_map = {w['id'].lower(): w['incomeLevel']['id'] for w in wb_country_data}
 filtered['incomeLevel'] = filtered.country.apply(lambda x: wb_country_income_map[x] if x in wb_country_income_map else None)
 income_level_names = {w['incomeLevel']['id']: w['incomeLevel']['value'] for w in wb_country_data}
