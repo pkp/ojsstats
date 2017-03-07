@@ -9,7 +9,7 @@ if ($db->connect_errno) {
 // Random sort order 1) helps prevent sequentially listed archives from getting
 // hit in parallel, and 2) ensures that ill-behaved archives won't always stall
 // the process at the same point.
-$result = $db->query('SELECT archive_id FROM archives ORDER BY rand()');
+$result = $db->query('SELECT archive_id FROM archives WHERE enabled = 1 ORDER BY rand()');
 while (list($archiveId) = $result->fetch_array()) {
 	echo $archiveId . "\n";
 }
