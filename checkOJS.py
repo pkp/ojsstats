@@ -15,7 +15,7 @@ with litecon:
 
 # set up SQL tables
 	litecur = litecon.cursor()
-	litecur.execute("CREATE TABLE IF NOT EXISTS endpoints (oai_url TEXT, repository_identifier TEXT, first_hit TEXT, last_hit TEXT, ip TEXT, version TEXT)")
+	litecur.execute("CREATE TABLE IF NOT EXISTS endpoints (oai_url TEXT, repository_identifier TEXT, first_hit TEXT, last_hit TEXT, ip TEXT, version TEXT, enabled INTEGER)")
 # unique index on repository id + ip address
 	litecur.execute("CREATE UNIQUE INDEX IF NOT EXISTS id_plus_ip ON endpoints (repository_identifier, ip)")
 	litecur.execute("CREATE TABLE IF NOT EXISTS journals (repository_identifier TEXT, ip TEXT, setSpec TEXT, setName TEXT, first_hit TEXT, last_hit TEXT, contact TEXT, archive_id INTEGER)")
@@ -204,7 +204,11 @@ with open(sys.argv[1], 'rb') as ojslogs:
 			with litecon:
 				litecur = litecon.cursor()
 				try:
-					litecur.execute("INSERT INTO endpoints (oai_url, repository_identifier, first_hit, last_hit, ip, version) VALUES(?,?,?,?,?,?)", (oai_url, repository_identifier, date_hit, date_hit, ip, ojs_version))
+					litecur.execute("INSERT INTO endpoints (oai_url, repository_identifier, first_hit, last_hit, ip, version, enabled) VALUES(?,?,?,?,?,?,?)", (oai_url, repository_identifier, date_hit, date_hit, ip, ojs_version, 1))
+
+					# disable any old IP addresses for this domain name
+					litecur.execute("UPDATE endpoints SET enabled=0 WHERE oai_url=? AND repository_identifier=? AND ip!=?", (oai_url, repository_identifier, ip))
+
 				except lite.IntegrityError:
 
 					print "already had %s:%s" % (repository_identifier, ip)

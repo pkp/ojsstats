@@ -87,7 +87,10 @@ with litecon:
 		if not title:
 			continue
 
-		litecur.execute("SELECT oai_url FROM endpoints WHERE repository_identifier=? AND ip=?", (repository_identifier, ip))
+		litecur.execute("SELECT oai_url, enabled FROM endpoints WHERE repository_identifier=? AND ip=?", (repository_identifier, ip))
+		
+		if enabled == 0:
+			continue
 		oai_url = litecur.fetchone()[0]
 
 		journal_endpoint = find_journal_endpoint(oai_url, setSpec)
