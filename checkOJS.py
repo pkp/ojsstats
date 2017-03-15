@@ -204,10 +204,10 @@ with open(sys.argv[1], 'rb') as ojslogs:
 			with litecon:
 				litecur = litecon.cursor()
 				try:
-					litecur.execute("INSERT INTO endpoints (oai_url, repository_identifier, first_hit, last_hit, ip, version, enabled) VALUES(?,?,?,?,?,?,?)", (oai_url, repository_identifier, date_hit, date_hit, ip, ojs_version, 1))
-
 					# disable any old IP addresses for this domain name
 					litecur.execute("UPDATE endpoints SET enabled=0 WHERE oai_url=? AND repository_identifier=? AND ip!=?", (oai_url, repository_identifier, ip))
+
+					litecur.execute("INSERT INTO endpoints (oai_url, repository_identifier, first_hit, last_hit, ip, version, enabled) VALUES(?,?,?,?,?,?,?)", (oai_url, repository_identifier, date_hit, date_hit, ip, ojs_version, 1))
 
 				except lite.IntegrityError:
 
