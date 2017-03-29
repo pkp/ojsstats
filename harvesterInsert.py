@@ -89,8 +89,7 @@ with litecon:
 
 		litecur.execute("SELECT oai_url FROM endpoints WHERE repository_identifier=? AND ip=? AND enabled = 1", (repository_identifier, ip))
 		
-		endpoint = litecur.fetchone()
-		oai_url = endpoint[0]
+		oai_url = litecur.fetchone()[0]
 
 		journal_endpoint = find_journal_endpoint(oai_url, setSpec)
 		journal_url = find_journal_url(oai_url, setSpec)
@@ -118,4 +117,4 @@ with litecon:
 		archive_id = journal[0]
 		cur.execute("UPDATE archives SET enabled = 0 WHERE archive_id = %s", (archive_id))
 
-		
+	con.commit()		
