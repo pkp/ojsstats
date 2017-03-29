@@ -87,14 +87,10 @@ with litecon:
 		if not title:
 			continue
 
-		litecur.execute("SELECT oai_url, enabled FROM endpoints WHERE repository_identifier=? AND ip=?", (repository_identifier, ip))
+		litecur.execute("SELECT oai_url FROM endpoints WHERE repository_identifier=? AND ip=? AND enabled = 1", (repository_identifier, ip))
 		
 		endpoint = litecur.fetchone()
-		enabled = endpoint[1]
 		oai_url = endpoint[0]
-
-		if enabled == 0:
-			continue
 
 		journal_endpoint = find_journal_endpoint(oai_url, setSpec)
 		journal_url = find_journal_url(oai_url, setSpec)
@@ -109,3 +105,17 @@ with litecon:
 		with litecon:
 			litecur = litecon.cursor()
 			litecur.execute("UPDATE journals SET archive_id=? WHERE repository_identifier=? AND ip=? AND setSpec=?", (archive_id, repository_identifier, ip, setSpec))
+
+
+# disable everything that needs to be disabled
+with litecon:
+	litecur = litecon.cursor()
+	litecur.execute("SELECT archive_id FROM journals j JOIN endpoints e ON (j.repository_identifier = e.repository_identifier AND j.ip = e.ip) WHERE e.enabled = 0 and j.archive_id IS NOT NULL")
+	# this will be big-ish in memory but shouldn't be a major issue, the whole SQLite db is about 60mb after one full run.
+	journals = litecur.fetchall()
+
+	for journal in journals:
+		archive_id = journal[0]
+		cur.execute("UPDATE archives SET enabled = 0 WHERE archive_id = %s", (archive_id))
+
+		
