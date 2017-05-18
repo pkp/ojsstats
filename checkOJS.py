@@ -222,7 +222,7 @@ with open(sys.argv[1], 'rb') as ojslogs:
 					except lite.IntegrityError:
 						pass
 
-					litecur.execute('UPDATE endpoints SET last_hit=? WHERE repository_identifier=? AND ip=?', (date_hit, repository_identifier, ip))
+					litecur.execute('UPDATE endpoints SET last_hit=?, enabled = 1 WHERE repository_identifier=? AND ip=?', (date_hit, repository_identifier, ip))
 
 			oai_list_sets_url = re.sub("verb=Identify", "verb=ListSets", oai_url)
 			journals = get_journals(oai_list_sets_url)

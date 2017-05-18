@@ -21,14 +21,16 @@ except mdb.Error, e:
 
 
 def insert(title, ip, journal_url, journal_oai_endpoint):
-	cur.execute("SELECT a.archive_id FROM archives a JOIN archive_settings s ON (a.archive_id = s.archive_id) WHERE a.url = %s AND s.setting_name = 'ip' and s.setting_value = %s", (journal_url, ip))
+	cur.execute("SELECT archive_id FROM archives WHERE a.url = %s", journal_url)
 
 	check = cur.fetchone()
 
 	if check:
-		# double check we aren't inserting duplicate URL's
-		# the above should always return false, since we're keeping track in sqlite when an insert succeeds
-		return check[0]
+		# double check we aren't inserting duplicate URL's, and just update the IP address
+		archive_id = check[0]
+		
+		cur.execute("UPDATE archive_settings SET setting_value = ? WHERE setting_name = %s AND archive_id = %s" % (ip, 'ip', archive_id))
+		return archive_id
 
 	try:
 		cur.execute("INSERT INTO archives (harvester_plugin, schema_plugin, user_id, title, url, enabled) VALUES (%s, %s, %s, %s, %s, %s)", ('OAIHarvesterPlugin', 'DublinCorePlugin', 1, title, journal_url, 1))
@@ -113,7 +115,13 @@ with litecon:
 # disable everything that needs to be disabled
 with litecon:
 	litecur = litecon.cursor()
-	litecur.execute("SELECT archive_id FROM journals j JOIN endpoints e ON (j.repository_identifier = e.repository_identifier AND j.ip = e.ip) WHERE e.enabled = 0 and j.archive_id IS NOT NULL")
+	litecur.execute("SELECT archive_id, enabled FROM journals j JOIN endpoints e ON (j.repository_identifier = e.repository_identifier AND j.ip = e.ip) WHERE j.archive_id IS NOT NULL")
+
+
+	# "UPDATE archives a
+	# 	JOIN (SELECT url, max(archive_id) as max_id FROM archives a2 GROUP BY 1) a2 ON a.url = a2.url 
+	# 	SET a.enabled = (a.archive_id = a2.max_id);"
+
 	# this will be big-ish in memory but shouldn't be a major issue, the whole SQLite db is about 60mb after one full run.
 	journals = litecur.fetchall()
 
@@ -121,4 +129,7 @@ with litecon:
 		archive_id = journal[0]
 		cur.execute("UPDATE archives SET enabled = 0 WHERE archive_id = %s", (archive_id))
 
-	con.commit()		
+	con.commit()
+
+cur.execute("SELECT DISTINCT url")
+
