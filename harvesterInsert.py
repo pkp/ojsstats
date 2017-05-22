@@ -29,7 +29,7 @@ def insert(title, ip, journal_url, journal_oai_endpoint):
 		# double check we aren't inserting duplicate URL's, and just update the IP address
 		archive_id = check[0]
 		
-		cur.execute("UPDATE archive_settings SET setting_value = ? WHERE setting_name = %s AND archive_id = %s" % (ip, 'ip', archive_id))
+		cur.execute("UPDATE archive_settings SET setting_value = %s WHERE setting_name = %s AND archive_id = %s", (ip, 'ip', archive_id))
 		return archive_id
 
 	try:
