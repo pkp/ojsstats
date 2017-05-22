@@ -21,7 +21,7 @@ except mdb.Error, e:
 
 
 def insert(title, ip, journal_url, journal_oai_endpoint):
-	cur.execute("SELECT archive_id FROM archives WHERE a.url = %s", journal_url)
+	cur.execute("SELECT archive_id FROM archives WHERE url = %s AND enabled = 1", journal_url)
 
 	check = cur.fetchone()
 
@@ -130,6 +130,3 @@ with litecon:
 		cur.execute("UPDATE archives SET enabled = 0 WHERE archive_id = %s", (archive_id))
 
 	con.commit()
-
-cur.execute("SELECT DISTINCT url")
-

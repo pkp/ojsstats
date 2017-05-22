@@ -18,6 +18,7 @@ with litecon:
 	litecur.execute("CREATE TABLE IF NOT EXISTS endpoints (oai_url TEXT, repository_identifier TEXT, first_hit TEXT, last_hit TEXT, ip TEXT, version TEXT, enabled INTEGER)")
 # unique index on repository id + ip address
 	litecur.execute("CREATE UNIQUE INDEX IF NOT EXISTS id_plus_ip ON endpoints (repository_identifier, ip)")
+
 	litecur.execute("CREATE TABLE IF NOT EXISTS journals (repository_identifier TEXT, ip TEXT, setSpec TEXT, setName TEXT, first_hit TEXT, last_hit TEXT, contact TEXT, archive_id INTEGER)")
 # unique index on oai url + setSpec
 	litecur.execute("CREATE UNIQUE INDEX IF NOT EXISTS id_plus_ip_plus_spec ON journals (repository_identifier, ip, setSpec)")
@@ -95,7 +96,7 @@ def find_oai_endpoint(url):
 		repository_identifier = ip + re.sub("http://[^/]+/", "/", oai_url)
 
 	# this should probably be a proper dict but it's a list for now
-	return [oai_url, repository_identifier, date_hit, ip, ojs_version]
+	return [oai_url.lower(), repository_identifier, date_hit, ip, ojs_version]
 
 
 def get_journals(oai_list_sets_url):
@@ -193,7 +194,7 @@ with open(sys.argv[1], 'rb') as ojslogs:
 
 			continue
 
-		# oai_data is a list with the following: [oai_url, repository_identifier, date_hit, ip, ojs_version]
+		# oai_data is a list with the following: [oai_url.lower(), repository_identifier, date_hit, ip, ojs_version]
 		oai_url = oai_data[0]
 		repository_identifier = oai_data[1]
 		date_hit = oai_data[2]
@@ -205,7 +206,7 @@ with open(sys.argv[1], 'rb') as ojslogs:
 				litecur = litecon.cursor()
 				try:
 					# disable any old IP addresses for this domain name
-					litecur.execute("UPDATE endpoints SET enabled=0 WHERE oai_url=? AND repository_identifier=? AND ip!=?", (oai_url, repository_identifier, ip))
+					litecur.execute("UPDATE endpoints SET enabled=0 WHERE oai_url=? AND ip!=?", (oai_url, repository_identifier, ip))
 
 					litecur.execute("INSERT INTO endpoints (oai_url, repository_identifier, first_hit, last_hit, ip, version, enabled) VALUES(?,?,?,?,?,?,?)", (oai_url, repository_identifier, date_hit, date_hit, ip, ojs_version, 1))
 
