@@ -127,6 +127,7 @@ with litecon:
 
 	for journal in journals:
 		archive_id = journal[0]
-		cur.execute("UPDATE archives SET enabled = 0 WHERE archive_id = %s", (archive_id))
+		enabled = journal[1]
+		cur.execute("UPDATE archives SET enabled = %s WHERE archive_id = %s", (enabled, archive_id))
 
 	con.commit()
