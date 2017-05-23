@@ -206,7 +206,7 @@ with open(sys.argv[1], 'rb') as ojslogs:
 				litecur = litecon.cursor()
 				try:
 					# disable any old IP addresses for this domain name
-					litecur.execute("UPDATE endpoints SET enabled=0 WHERE oai_url=? AND ip!=?", (oai_url, repository_identifier, ip))
+					litecur.execute("UPDATE endpoints SET enabled=0 WHERE oai_url=? AND ip!=?", (oai_url, ip))
 
 					litecur.execute("INSERT INTO endpoints (oai_url, repository_identifier, first_hit, last_hit, ip, version, enabled) VALUES(?,?,?,?,?,?,?)", (oai_url, repository_identifier, date_hit, date_hit, ip, ojs_version, 1))
 
