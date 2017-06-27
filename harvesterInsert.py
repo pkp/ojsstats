@@ -21,7 +21,7 @@ except mdb.Error, e:
 
 
 def insert(title, ip, journal_url, journal_oai_endpoint):
-	cur.execute("SELECT archive_id FROM archives WHERE url = %s AND enabled = 1", journal_url)
+	cur.execute("SELECT archive_id FROM archives WHERE url = %s AND enabled = 1", (journal_url,))
 
 	check = cur.fetchone()
 
@@ -111,23 +111,3 @@ with litecon:
 			litecur = litecon.cursor()
 			litecur.execute("UPDATE journals SET archive_id=? WHERE repository_identifier=? AND ip=? AND setSpec=?", (archive_id, repository_identifier, ip, setSpec))
 
-
-# disable everything that needs to be disabled
-with litecon:
-	litecur = litecon.cursor()
-	litecur.execute("SELECT archive_id, enabled FROM journals j JOIN endpoints e ON (j.repository_identifier = e.repository_identifier AND j.ip = e.ip) WHERE j.archive_id IS NOT NULL")
-
-
-	# "UPDATE archives a
-	# 	JOIN (SELECT url, max(archive_id) as max_id FROM archives a2 GROUP BY 1) a2 ON a.url = a2.url 
-	# 	SET a.enabled = (a.archive_id = a2.max_id);"
-
-	# this will be big-ish in memory but shouldn't be a major issue, the whole SQLite db is about 60mb after one full run.
-	journals = litecur.fetchall()
-
-	for journal in journals:
-		archive_id = journal[0]
-		enabled = journal[1]
-		cur.execute("UPDATE archives SET enabled = %s WHERE archive_id = %s", (enabled, archive_id))
-
-	con.commit()
