@@ -245,6 +245,8 @@ with open(sys.argv[1], 'rb') as ojslogs:
 						try:
 
 							litecur.execute("INSERT INTO journals (repository_identifier, ip, setSpec, setName, first_hit, last_hit, contact) VALUES(?,?,?,?,?,?,?)", (repository_identifier, ip, setSpec, setName, date_hit, date_hit, journal_contact))
+							archive_id = int(litecur.lastrowid)
+							litecur.execute("UPDATE journals SET archive_id=? WHERE repository_identifier=? AND ip=? AND setSpec=?", (archive_id, ojs["repository_identifier"], ojs["ip"], ojs["setSpec"]))
 
 						except lite.IntegrityError:
 							print "Already had %s" % setSpec
