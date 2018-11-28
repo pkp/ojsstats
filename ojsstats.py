@@ -12,9 +12,9 @@ import requests
 import collections
 import sqlite3 as lite
 import datetime as dt
+import geoip2.database
 
 from tld import get_tld
-from geoip import geolite2
 from sickle import Sickle
 from dateutil.parser import parse
 from xml.etree import ElementTree as ET
@@ -22,7 +22,7 @@ from xml.etree import ElementTree as ET
 litecon = lite.connect('data/ojs_oai.db')
 
 
-def find_country_in_title(journal):
+def find_country_in_title(journal, country_from_title, nat_to_iso3):
 	if journal[3] in country_from_title:
 		return country_from_title[journal[3]][1]
 
@@ -270,9 +270,8 @@ def beacon_log_parser():
 							try:
 								c.execute("INSERT INTO journals (beacon_id, repository_identifier, ip, setSpec, setName, first_hit, last_hit, contact) VALUES(?,?,?,?,?,?,?,?)", (beacon_id, repository_identifier, ip, setSpec, setName, date_hit, date_hit, journal_contact))
 								archive_id = int(c.lastrowid)
-								# get and insert legacy "archive id" from old harvester codepaths
-								# still used for lookups
-								c.execute("UPDATE journals SET archive_id=? WHERE beacon_id=? AND repository_identifier=? AND ip=? AND setSpec=?", (archive_id, ojs["beacon_id"], ojs["repository_identifier"], ojs["ip"], ojs["setSpec"]))
+								# get and insert legacy "archive id" from old harvester codepaths; still used for lookups
+								c.execute("UPDATE journals SET archive_id=? WHERE beacon_id=? AND repository_identifier=? AND ip=? AND setSpec=?", (archive_id, beacon_id, repository_identifier, ip, setSpec))
 
 							except lite.IntegrityError:
 								print("Already had %s" % setSpec)
@@ -339,6 +338,7 @@ def country_lookup():
 	country_from_title = {}
 	wb_country_info = {}
 	iso2_to_iso3 = {}
+	reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
 
 	country_stop_words = ['islands', 'saint', 'and', 'republic', 'virgin', 'united', 'south', 'of', 'new', 'the']
 
@@ -392,23 +392,23 @@ def country_lookup():
 
 	with litecon:
 		c = litecon.cursor()
-		c.execute("SELECT repository_identifier, setSpec, setName, archive_id, ip FROM journals")
+		c.execute("SELECT beacon_id, repository_identifier, setSpec, setName, archive_id, ip FROM journals")
 		journals = c.fetchall()
 
 		for journal in journals:
-			repository_identifier, setSpec, setName, archive_id, ip = journal
+			beacon_id, repository_identifier, setSpec, setName, archive_id, ip = journal
 
-			match = geolite2.lookup(ip)
+			match = reader.country(ip)
 			if match is not None:
 				try:
-					journal_geoip = match.country.lower()
+					journal_geoip = response.country.iso_code.lower()
 				except:
 					journal_geoip = None
 			else:
 				journal_geoip = None
 
 			if setName is not None:
-				country_in_title = find_country_in_title(journal)
+				country_in_title = find_country_in_title(journal, country_from_title, nat_to_iso3)
 			else:
 				country_in_title = None
 
@@ -482,8 +482,8 @@ if __name__ == "__main__":
 		c.execute("CREATE TABLE IF NOT EXISTS locales (archive_id TEXT, tld TEXT, country_in_title TEXT, geo_ip TEXT, country TEXT, region_id TEXT, region_name TEXT)")
 		c.execute("CREATE UNIQUE INDEX IF NOT EXISTS locale_index ON locales (archive_id)")
 
-	#beacon_log_parser()
-	#harvest()
+	beacon_log_parser()
+	harvest()
 	country_lookup()
 
 	# TODO: statscrunch currently expects data/archive_settings.csv with lastIndexedDate, recordCount, harvesterUrl
