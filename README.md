@@ -1,12 +1,8 @@
 **This is the crazy way in which we calculate how many OJS journals there are!**
 
-Old commits aren't here because they had passwords in them :)
+This is mostly run by cron, following cron.sh. A detailed description of the process is described below.
 
-This is mostly run by cron, following cron.sh. 90% of the code is standalone and runs on the same server; it also phones out to an instance of Open Harvester Systems running elsewhere.
-
-A detailed description of the process is described below.
-
-Written and maintained by @axfelix and @jalperin.
+Written and maintained by @axfelix (ojsstats.py) and @jalperin (statscrunch.py).
 
 # The Process: 
 
@@ -32,7 +28,7 @@ The journal name can be saved from the list of Sets, and by using the “Identif
 
 ## 6. Add known OJS OAI URLs to an instance of the PKP Harvester 
 
-Once a known valid OJS journal OAI endpoint is found, the URL is added to the PKP Harvester by interacting directly with the Harvesters database. 
+Once a known valid OJS journal OAI endpoint is found, the URL is harvested over OAI.
 
 ## 7. Look up the journal’s country
 
