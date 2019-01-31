@@ -81,7 +81,7 @@ def find_oai_endpoint(url, ip, is_beacon):
 		try:
 			print("Going after: %s" % url_to_try)
 			request = urllib2.Request(url_to_try)
-			response = urllib2.urlopen(request, timeout=180)
+			response = urllib2.urlopen(request, timeout=20)
 			oai_xml = response.read()
 		except:
 			continue
@@ -117,7 +117,7 @@ def verify_not_missing_journal(journal_endpoint, setSpec):
 	testing_url = (re.sub("verb=Identify", "verb=ListRecords&metadataPrefix=oai_dc&set=", journal_endpoint) + setSpec)
 	request = urllib2.Request(testing_url)
 	try:
-		response = urllib2.urlopen(request, timeout=180)
+		response = urllib2.urlopen(request, timeout=20)
 	except urllib.error.URLError:
 		return True
 	oai_xml = response.read()
@@ -132,7 +132,7 @@ def get_journals(oai_list_sets_url):
 		token = None
 		try:
 			request = urllib2.Request(oai_list_sets_url)
-			response = urllib2.urlopen(request, timeout=180)
+			response = urllib2.urlopen(request, timeout=20)
 			oai_xml = response.read()
 		except:
 			return False
@@ -176,7 +176,7 @@ def find_journal_endpoint(oai_url, setSpec):
 def find_journal_contact(journal_endpoint):
 	try:
 		request = urllib2.Request(journal_endpoint)
-		response = urllib2.urlopen(request, timeout=180)
+		response = urllib2.urlopen(request, timeout=20)
 		oai_xml = response.read()
 	except:
 		return False
@@ -209,17 +209,16 @@ def beacon_log_parser(logpath):
 
 			version_string = re.search('\"(\S+)\"\s0\s80', str(line))
 
-			if "ojs2" in version_string.group(1):
-				ojs_version = re.search('ojs2/(\S+)', version_string.group(1)).group(1)
-
-			elif "PKP" in version_string.group(1):
-				try:
+			try:
+				if "ojs2" in version_string.group(1):
+					ojs_version = re.search('ojs2/(\S+)', version_string.group(1)).group(1)
+				elif "PKP" in version_string.group(1):
 					version_xml = requests.get((ip + '/dbscripts/xml/version.xml'))
 					tree = ET.fromstring(version_xml.content)
 					if tree.findall('.//application')[0] == "ojs2":
 						ojs_version = tree.findall('.//release')[0]
-				except:
-					continue
+			except:
+				continue
 
 			beacon_id = re.search('ojs-version\.xml\?id=(\S+?)&', str(line))
 			if beacon_id:
@@ -309,10 +308,6 @@ def country_lookup():
 
 	response = requests.get("http://api.worldbank.org/countries?per_page=400&format=json" )
 	wb_country_data = response.json()[1]
-
-	wb_country_income_map = {w['id'].lower(): w['incomeLevel']['id'] for w in wb_country_data}
-	# currently unused, carrying forward from old script
-	income_level_names = {w['incomeLevel']['id']: w['incomeLevel']['value'] for w in wb_country_data}
 
 	for country in wb_country_data:
 		if country['region']['value'] == 'Aggregates': continue
@@ -434,10 +429,8 @@ def country_lookup():
 			except:
 				c.execute("UPDATE locales SET tld=?, country_in_title=?, geo_ip=?, country=?, region_id=?, region_name=? WHERE archive_id = ?", (tld, country_in_title, journal_geoip, country, region_id, region_name, archive_id))
 
-	return income_level_names
 
-
-def harvest(income_level_names):
+def harvest():
 	journals_per_year = collections.Counter()
 	articles_per_year = collections.Counter()
 	hosts_per_year = {k: [] for k in range(1990,(int(time.strftime("%Y")) + 1))}
@@ -563,5 +556,5 @@ if __name__ == "__main__":
 		beacon_log_parser(arguments["--logpath"])
 	if arguments["--onlylogparse"]:
 		quit()
-	income_level_names = country_lookup()
-	harvest(income_level_names)
+	country_lookup()
+	harvest()
