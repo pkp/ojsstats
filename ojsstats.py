@@ -118,7 +118,7 @@ def verify_not_missing_journal(journal_endpoint, setSpec):
 	request = urllib2.Request(testing_url)
 	try:
 		response = urllib2.urlopen(request, timeout=20)
-	except urllib.error.URLError:
+	except:
 		return True
 	oai_xml = response.read()
 	if "noRecordsMatch" in str(oai_xml):
@@ -433,7 +433,7 @@ def country_lookup():
 def harvest():
 	journals_per_year = collections.Counter()
 	articles_per_year = collections.Counter()
-	hosts_per_year = {k: [] for k in range(1990,(int(time.strftime("%Y")) + 1))}
+	hosts_per_year = {str(k): [] for k in range(1990,(int(time.strftime("%Y")) + 1))}
 	sampled_years = ["%03d" % a for a in range(1990,(int(time.strftime("%Y")) + 1))]
 
 	with litecon:
@@ -484,7 +484,7 @@ def harvest():
 				try:
 					try:
 						record = records.next()
-					except requests.exceptions.ConnectionError:
+					except:
 						break
 
 					if "year" not in record.metadata.keys():
@@ -514,16 +514,18 @@ def harvest():
 					hosts_per_year[pub_year].append(oai_url)
 					journals_per_year[pub_year] += 1
 					c2.execute("SELECT country, region_id, region_name FROM locales WHERE archive_id=?", (ojs["archive_id"],))
-					locale = dict(zip(["country", "region_id", "region_name"], c2.fetchone()))
-					countries_writer.writerow([pub_year, locale["country"], locale["region_id"], locale["region_name"], ojs["archive_id"]])
+					try:
+						locale = dict(zip(["country", "region_id", "region_name"], c2.fetchone()))
+						countries_writer.writerow([pub_year, locale["country"], locale["region_id"], locale["region_name"], ojs["archive_id"]])
+					except:
+						print("region lookup issue for " + str(ojs["archive_id"])
+
 
 		dates_csv.close()
 		countries_csv.close()
 
-		for year in hosts_per_year:
-			hosts_per_year_counter[year] = len(set(hosts_per_year[year]))
 		for year in sampled_years:
-			counts_writer.writerow([year, journals_per_year[year], articles_per_year[year], hosts_per_year_counter[year], (articles_per_year[year]/journals_per_year[year])])
+			counts_writer.writerow([year, journals_per_year[year], articles_per_year[year], len(set(hosts_per_year[year])), (articles_per_year[year]/journals_per_year[year])])
 		counts_csv.close()
 
 
