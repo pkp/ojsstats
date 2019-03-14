@@ -55,7 +55,9 @@ def find_journal_endpoint(oai_url, setSpec):
 	else:
 		journal_endpoint = re.sub("index\/", (setSpec + "/"), oai_url)
 
-	journal_endpoint = re.sub("[&\?]?verb=Identify", "", journal_endpoint)
+	is_missing = verify_not_missing_journal(journal_endpoint, setSpec)
+	if is_missing:
+		return None
 	return journal_endpoint
 
 
@@ -159,18 +161,6 @@ def get_journals(oai_list_sets_url):
 			break
 
 	return spec_name_pairs
-
-
-def find_journal_endpoint(oai_url, setSpec):
-	if re.search("\?page=oai", oai_url):
-		journal_endpoint = re.sub("\?", ("/index.php?journal=" + setSpec + "&"), oai_url)
-	else:
-		journal_endpoint = re.sub("index\/", (setSpec + "/"), oai_url)
-
-	is_missing = verify_not_missing_journal(journal_endpoint, setSpec)
-	if is_missing:
-		return None
-	return journal_endpoint
 
 
 def find_journal_contact(journal_endpoint):
@@ -456,20 +446,28 @@ def harvest():
 			ojs = dict(zip(["repository_identifier", "setSpec", "title", "ip", "archive_id"], row))
 
 			if ojs["title"] is None:
+				with open("data/checkOJSlog.txt", "a") as logfile:
+					logfile.write("Title missing for %s\n" % (ojs["archive_id"],))
 				continue
 
 			c2.execute("SELECT oai_url, last_hit FROM endpoints WHERE repository_identifier=? AND ip=? AND enabled = 1", (ojs["repository_identifier"], ojs["ip"]))
 			try: 
 				oai_url, last_hit = c2.fetchone()
 			except: 
+				with open("data/checkOJSlog.txt", "a") as logfile:
+					logfile.write("Endpoint lookup failed for %s\n" % (ojs["archive_id"],))
 				continue
 
 			delta = dt.datetime.today() - dt.datetime.strptime(last_hit, "%m/%d/%Y")
 			if delta.days > 30:
+				with open("data/checkOJSlog.txt", "a") as logfile:
+					logfile.write("%s not hit in the last 30 days\n" % (ojs["archive_id"],))
 				continue
 
 			ojs["oai_endpoint"] = find_journal_endpoint(oai_url, ojs["setSpec"])
 			if ojs["oai_endpoint"] is None:
+				with open("data/checkOJSlog.txt", "a") as logfile:
+					logfile.write("Couldn't find endpoint for %s\n" % (ojs["archive_id"],))
 				continue
 
 			pub_years = []
@@ -478,6 +476,8 @@ def harvest():
 			try:
 				records = sickle.ListRecords(metadataPrefix="nlm", ignore_deleted=True)
 			except:
+				with open("data/checkOJSlog.txt", "a") as logfile:
+					logfile.write("List records call failed for %s\n" % (ojs["archive_id"],))
 				continue
 
 			while records:
@@ -518,7 +518,7 @@ def harvest():
 						locale = dict(zip(["country", "region_id", "region_name"], c2.fetchone()))
 						countries_writer.writerow([pub_year, locale["country"], locale["region_id"], locale["region_name"], ojs["archive_id"]])
 					except:
-						print("region lookup issue for " + str(ojs["archive_id"])
+						print("region lookup issue for " + str(ojs["archive_id"]))
 
 
 		dates_csv.close()
