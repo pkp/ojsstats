@@ -459,9 +459,9 @@ def harvest():
 				continue
 
 			delta = dt.datetime.today() - dt.datetime.strptime(last_hit, "%m/%d/%Y")
-			if delta.days > 30:
+			if delta.days > 60:
 				with open("data/checkOJSlog.txt", "a") as logfile:
-					logfile.write("%s not hit in the last 30 days\n" % (ojs["archive_id"],))
+					logfile.write("%s not hit in the last 60 days\n" % (ojs["archive_id"],))
 				continue
 
 			ojs["oai_endpoint"] = find_journal_endpoint(oai_url, ojs["setSpec"])
@@ -476,9 +476,12 @@ def harvest():
 			try:
 				records = sickle.ListRecords(metadataPrefix="nlm", ignore_deleted=True)
 			except:
-				with open("data/checkOJSlog.txt", "a") as logfile:
-					logfile.write("List records call failed for %s\n" % (ojs["archive_id"],))
-				continue
+				try:
+					records = sickle.ListRecords(metadataPrefix="oai_dc", ignore_delete=True)
+				except:
+					with open("data/checkOJSlog.txt", "a") as logfile:
+						logfile.write("List records call failed for %s\n" % (ojs["archive_id"],))
+					continue
 
 			while records:
 				try:
