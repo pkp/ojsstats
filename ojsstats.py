@@ -116,7 +116,7 @@ def find_oai_endpoint(url, ip, is_beacon):
 
 
 def verify_not_missing_journal(journal_endpoint, setSpec):
-	testing_url = (re.sub("verb=Identify", "verb=ListRecords&metadataPrefix=oai_dc&set=", journal_endpoint) + setSpec)
+	testing_url = (re.sub("verb=[iI]dentify", "verb=ListRecords&metadataPrefix=oai_dc&set=", journal_endpoint) + setSpec)
 	request = urllib2.Request(testing_url)
 	try:
 		response = urllib2.urlopen(request, timeout=20)
