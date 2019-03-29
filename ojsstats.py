@@ -120,9 +120,9 @@ def verify_not_missing_journal(journal_endpoint, setSpec):
 	request = urllib2.Request(testing_url)
 	try:
 		response = urllib2.urlopen(request, timeout=20)
+		oai_xml = response.read()
 	except:
 		return True
-	oai_xml = response.read()
 	if "noRecordsMatch" in str(oai_xml):
 		return True
 	return False
@@ -477,7 +477,7 @@ def harvest():
 				records = sickle.ListRecords(metadataPrefix="nlm", ignore_deleted=True)
 			except:
 				try:
-					records = sickle.ListRecords(metadataPrefix="oai_dc", ignore_delete=True)
+					records = sickle.ListRecords(metadataPrefix="oai_dc", ignore_deleted=True)
 				except:
 					with open("data/checkOJSlog.txt", "a") as logfile:
 						logfile.write("List records call failed for %s\n" % (ojs["archive_id"],))

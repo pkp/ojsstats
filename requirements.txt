@@ -1,0 +1,6 @@
+docopt
+requests
+geoip2
+sickle
+lxml
+tld
