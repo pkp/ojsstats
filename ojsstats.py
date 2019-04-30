@@ -28,6 +28,7 @@ import sqlite3 as lite
 import datetime as dt
 import geoip2.database
 import geoip2.errors
+import tarfile
 
 from docopt import docopt
 from tld import get_tld
@@ -292,7 +293,18 @@ def country_lookup():
 	country_from_title = {}
 	wb_country_info = {}
 	iso2_to_iso3 = {}
-	reader = geoip2.database.Reader('GeoLite2-Country.mmdb')
+
+	if os.path.exists('maxmind.tar.gz'): os.remove('maxmind.tar.gz')
+	if os.path.exists('maxmind.mmdb'): os.remove('maxmind.mmdb')
+	maxmind = requests.get("https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz")
+	with open("maxmind.tar.gz", "wb") as maxmind_local:
+		maxmind_local.write(maxmind.content)
+	maxmind_tar = tarfile.open('maxmind.tar.gz')
+	mmdb = maxmind_tar.extractfile(maxmind_tar.getmembers()[-1])
+	with open("maxmind.mmdb", "wb") as mmdb_local:
+		mmdb_local.write(mmdb.read())
+
+	reader = geoip2.database.Reader('maxmind.mmdb')
 
 	country_stop_words = ['islands', 'saint', 'and', 'republic', 'virgin', 'united', 'south', 'of', 'new', 'the']
 
@@ -493,7 +505,7 @@ def harvest():
 					if "year" not in record.metadata.keys():
 						try:
 							year = parse(record.metadata["date"][0]).strftime('%Y')
-						except KeyError:
+						except:
 							break
 					else:
 						match = re.search(r"(1\d{3}|20\d{2})", record.metadata["year"][0])
