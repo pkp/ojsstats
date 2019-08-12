@@ -16,7 +16,6 @@ import sys
 import csv
 import gzip
 import glob
-import urllib.request as urllib2 # forward-port from python 2
 import urllib.parse
 import urllib.error
 import json
@@ -83,9 +82,8 @@ def find_oai_endpoint(url, ip, is_beacon):
 
 		try:
 			print("Going after: %s" % url_to_try)
-			request = urllib2.Request(url_to_try)
-			response = urllib2.urlopen(request, timeout=20)
-			oai_xml = response.read()
+			r = requests.get(url_to_try, timeout=20, verify=False)
+			oai_xml = r.content
 		except:
 			continue
 
@@ -118,10 +116,9 @@ def find_oai_endpoint(url, ip, is_beacon):
 
 def verify_not_missing_journal(journal_endpoint, setSpec):
 	testing_url = (re.sub("verb=[iI]dentify", "verb=ListRecords&metadataPrefix=oai_dc&set=", journal_endpoint) + setSpec)
-	request = urllib2.Request(testing_url)
 	try:
-		response = urllib2.urlopen(request, timeout=20)
-		oai_xml = response.read()
+		r = requests.get(testing_url, timeout=20, verify=False)
+		oai_xml = r.content
 	except:
 		return True
 	if "noRecordsMatch" in str(oai_xml):
@@ -134,9 +131,8 @@ def get_journals(oai_list_sets_url):
 	while True:
 		token = None
 		try:
-			request = urllib2.Request(oai_list_sets_url)
-			response = urllib2.urlopen(request, timeout=20)
-			oai_xml = response.read()
+			r = requests.get(oai_list_sets_url, timeout=20, verify=False)
+			oai_xml = r.content
 		except:
 			return False
 
@@ -166,9 +162,8 @@ def get_journals(oai_list_sets_url):
 
 def find_journal_contact(journal_endpoint):
 	try:
-		request = urllib2.Request(journal_endpoint)
-		response = urllib2.urlopen(request, timeout=20)
-		oai_xml = response.read()
+		r = requests.get(journal_endpoint, timeout=20, verify=False)
+		oai_xml = r.content
 	except:
 		return False
 
@@ -471,9 +466,9 @@ def harvest():
 				continue
 
 			delta = dt.datetime.today() - dt.datetime.strptime(last_hit, "%m/%d/%Y")
-			if delta.days > 60:
+			if delta.days > 365:
 				with open("data/checkOJSlog.txt", "a") as logfile:
-					logfile.write("%s not hit in the last 60 days\n" % (ojs["archive_id"],))
+					logfile.write("%s not hit in the last 365 days\n" % (ojs["archive_id"],))
 				continue
 
 			ojs["oai_endpoint"] = find_journal_endpoint(oai_url, ojs["setSpec"])
