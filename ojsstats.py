@@ -92,19 +92,16 @@ def find_oai_endpoint(url, ip, is_beacon):
 		except:
 			continue
 
-		# This could be made more efficient than a findall
 		for element in oai_xml_tree.findall(".//{http://www.openarchives.org/OAI/2.0/oai-identifier}repositoryIdentifier"):
 			repository_id_xml_block = element
 			repository_identifier = element.text
 
-		# if no repo id was found, then this is not the URL we're looking for.
 		if repository_id_xml_block is False:
 			continue
 
 		date_hit = dt.datetime.today().strftime("%m/%d/%Y")
 		oai_url = url_to_try
 
-	# if we didn't find a repo, do not return a list
 	if repository_id_xml_block is False or oai_url is False:
 		return False
 
@@ -172,10 +169,14 @@ def find_journal_contact(journal_endpoint):
 	except:
 		return False
 
+	journal_contract = False
 	for element in oai_xml_tree.findall(".//{http://www.openarchives.org/OAI/2.0/}adminEmail"):
 		journal_contact = element.text
 
-	return journal_contact
+	if journal_contract is True:
+		return journal_contact
+	else:
+		return False
 
 
 def beacon_log_parser(logpath):
@@ -268,6 +269,8 @@ def beacon_log_parser(logpath):
 								continue
 							else:
 								journal_contact = find_journal_contact(journal_endpoint)
+								if journal_contact is False:
+									continue
 
 							try:
 								c.execute("INSERT INTO journals (repository_identifier, ip, setSpec, setName, first_hit, last_hit, contact) VALUES(?,?,?,?,?,?,?)", (repository_identifier, ip, setSpec, setName, date_hit, date_hit, journal_contact))
